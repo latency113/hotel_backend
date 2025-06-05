@@ -7,6 +7,8 @@ import { routes } from "./routes";
 import cors from "@elysiajs/cors";
 
 
+
+
 export const app = new Elysia()
   .use(jwt({ secret: Bun.env.JWT_SECRET! }))
   .decorate('store', {
@@ -40,3 +42,6 @@ export const app = new Elysia()
     })
   )
   .get("/", () => "Hello Elysia")
+
+export type App = typeof app;
+  

@@ -71,3 +71,36 @@ export const loginUser = async (
 };
 
 export const getRefreshTokenMaxAge = () => REFRESH_TOKEN_EXPIRES_IN / 1000;
+
+
+export const refreshAccessToken = async (
+  refreshToken: string,
+  jwt: any // JwtInstance
+) => {
+  const tokenRecord = await prisma.refreshToken.findFirst({
+    where: { 
+      token: refreshToken }
+      ,
+  });
+
+  if (!tokenRecord || tokenRecord.expiresAt < new Date()) {
+    throw new Error('Invalid or expired refresh token');
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: tokenRecord.userId } });
+  if (!user) throw new Error('User not found');
+
+  const accessToken = await jwt.sign({
+    id: user.id,
+    role: user.role,
+  });
+
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    },
+    accessToken,
+  };
+};

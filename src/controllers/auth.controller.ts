@@ -1,6 +1,6 @@
 import type { Context } from 'elysia';
 import type jwt from '@elysiajs/jwt';
-import { registerUser, loginUser, getRefreshTokenMaxAge } from '../services/auth.service';
+import { registerUser, loginUser, getRefreshTokenMaxAge, refreshAccessToken } from '../services/auth.service';
 
 type JwtInstance = ReturnType<typeof jwt>['config']['decorate']['jwt'];
 
@@ -64,3 +64,21 @@ export const loginController = async ({
     return { message: error.message || 'Internal server error' };
   }
 };
+
+export const refreshTokenController = async ({ cookie, jwt, set }: Context & { jwt: JwtInstance }) => {
+  try {
+    const refreshToken = cookie?.refreshToken?.value;
+    if (!refreshToken) {
+      set.status = 401;
+      return { message: 'Refresh token not provided' };
+    }
+    const tokens = await refreshAccessToken(refreshToken, jwt);
+    return {
+      message: 'Token refreshed successfully',
+      ...tokens,
+    };
+  } catch (error: any) {
+    set.status = 401;
+    return { message: error.message || 'Failed to refresh token' };
+  }
+}
