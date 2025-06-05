@@ -1,0 +1,142 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  user
+  admin
+}
+
+enum BookingType {
+  daily
+  monthly
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  cancelled
+  checked_in
+  checked_out
+}
+
+enum RoomStatus {
+  available
+  occupied
+  maintenance
+}
+
+enum PriceType {
+  daily
+  monthly
+}
+
+enum PaymentStatus {
+  paid
+  pending
+  failed
+}
+
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String?         @unique
+  password      String?
+  phone         String?
+  role          Role            @default(user)
+  createdAt     DateTime        @default(now())
+  isActive      Boolean         @default(true)
+
+  bookings      Booking[]       // ความสัมพันธ์กับ Booking
+  refreshTokens RefreshToken[]  // ความสัมพันธ์กับ RefreshToken
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  token      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model RoomType {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  maxGuests   Int
+
+  rooms       Room[]
+  prices      RoomPrice[]
+}
+
+model Room {
+  id          String      @id @default(cuid())
+  roomNumber  String
+  floor       Int
+  status      RoomStatus  @default(available)
+  description String?
+
+  typeId      String
+  type        RoomType    @relation(fields: [typeId], references: [id])
+
+  bookingDetails BookingDetail[]
+}
+
+model RoomPrice {
+  id            String     @id @default(cuid())
+  priceType     PriceType
+  priceAmount   Decimal
+  season        String?
+  effectiveDate DateTime
+
+  typeId        String
+  type          RoomType   @relation(fields: [typeId], references: [id])
+}
+
+model Booking {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id])
+
+  bookingType BookingType
+  bookingDate DateTime       @default(now())
+  checkIn     DateTime
+  checkOut    DateTime
+  status      BookingStatus  @default(pending)
+  notes       String?
+
+  details     BookingDetail[]
+  payments    Payment[]
+}
+
+model BookingDetail {
+  id            String   @id @default(cuid())
+  bookingId     String
+  roomId        String
+  pricePerUnit  Decimal
+  quantity      Int
+  subtotal      Decimal
+
+  booking       Booking  @relation(fields: [bookingId], references: [id])
+  room          Room     @relation(fields: [roomId], references: [id])
+}
+
+model Payment {
+  id            String         @id @default(cuid())
+  bookingId     String
+  amount        Decimal
+  paymentDate   DateTime       @default(now())
+  method        String
+  status        PaymentStatus  @default(pending)
+
+  booking       Booking        @relation(fields: [bookingId], references: [id])
+}
